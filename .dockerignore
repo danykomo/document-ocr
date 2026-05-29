@@ -1,0 +1,14 @@
+.venv/
+venv/
+**/__pycache__/
+**/*.pyc
+.pytest_cache/
+.git/
+.gitignore
+*.egg-info/
+benchmarks/document-ocr/results/
+benchmarks/document-ocr/samples/*.jpg
+benchmarks/document-ocr/samples/*.png
+.env
+.DS_Store
+docs/

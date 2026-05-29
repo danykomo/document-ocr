@@ -1,0 +1,27 @@
+{
+  "sample_id": "drivers_license-00-rotated",
+  "document_type": "drivers_license",
+  "fields": {
+    "full_name": "Aisha Chukwuemeka Ogunleye",
+    "date_of_birth": "1983-10-23",
+    "gender": "Male",
+    "drivers_license_number": "OGU02951830",
+    "issue_date": "2025-07-08",
+    "expiry_date": "2027-05-27",
+    "address": "90 Ikorodu Road, Garki, Abuja",
+    "issuing_authority": "Federal Road Safety Corps"
+  },
+  "required_fields": [
+    "full_name",
+    "date_of_birth",
+    "drivers_license_number",
+    "expiry_date"
+  ],
+  "portrait_present": true,
+  "portrait_bbox": [
+    790,
+    120,
+    950,
+    320
+  ]
+}

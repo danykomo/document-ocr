@@ -1,0 +1,22 @@
+{
+  "sample_id": "voter_id-00-whatsapp",
+  "document_type": "voter_id",
+  "fields": {
+    "full_name": "Tunde Chinwe Nwosu",
+    "date_of_birth": "1991-12-15",
+    "gender": "Female",
+    "document_number": "2719553090405714314",
+    "address": "5 Aminu Kano Crescent, Garki, Abuja"
+  },
+  "required_fields": [
+    "full_name",
+    "document_number"
+  ],
+  "portrait_present": true,
+  "portrait_bbox": [
+    790,
+    120,
+    950,
+    320
+  ]
+}

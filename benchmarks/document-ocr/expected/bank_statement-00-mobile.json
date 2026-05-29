@@ -1,0 +1,17 @@
+{
+  "sample_id": "bank_statement-00-mobile",
+  "document_type": "bank_statement",
+  "fields": {
+    "full_name": "Funke Abubakar Okonkwo",
+    "account_number": "2919508543",
+    "address": "90 Ikorodu Road, Ikeja, Lagos",
+    "issue_date": "2025-08-22",
+    "issuing_authority": "Specimen Bank PLC"
+  },
+  "required_fields": [
+    "full_name",
+    "account_number"
+  ],
+  "portrait_present": false,
+  "portrait_bbox": null
+}

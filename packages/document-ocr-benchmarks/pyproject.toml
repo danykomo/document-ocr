@@ -1,0 +1,48 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "document-ocr-benchmarks"
+version = "0.1.0"
+description = "Benchmark harness for evaluating VLM/OCR providers on Nigerian banking and identity documents."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Innovantics" }]
+keywords = ["ocr", "vlm", "benchmark", "nigeria", "kyc", "document-intelligence"]
+
+# Core deps are intentionally light so the harness imports and runs (scoring,
+# synthetic data, reporting, the mock provider, and HTTP-based VLM runners)
+# without any heavy ML stack installed. Provider-specific backends live in
+# optional extras and are imported lazily.
+dependencies = [
+    "pydantic>=2.6",
+    "pydantic-settings>=2.2",
+    "pillow>=10.2",
+    "numpy>=1.26",
+    "opencv-python-headless>=4.9",
+    "httpx>=0.27",
+    "rapidfuzz>=3.6",
+    "click>=8.1",
+    "pyyaml>=6.0",
+    "rich>=13.7",
+]
+
+[project.optional-dependencies]
+# Classical, CPU-only fallback OCR. Requires the `tesseract` system binary.
+tesseract = ["pytesseract>=0.3.10"]
+# PaddleOCR classical pipeline if you want to run it in-process instead of via
+# a served PaddleOCR-VL HTTP endpoint.
+paddle = ["paddleocr>=2.7", "paddlepaddle>=2.6"]
+dev = ["pytest>=8.0", "pytest-cov>=5.0"]
+
+[project.scripts]
+document-ocr-bench = "document_ocr_benchmarks.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/document_ocr_benchmarks"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

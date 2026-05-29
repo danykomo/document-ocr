@@ -1,0 +1,29 @@
+{
+  "sample_id": "passport-00-rotated",
+  "document_type": "passport",
+  "fields": {
+    "full_name": "Tunde Temitope Okonkwo",
+    "surname": "Okonkwo",
+    "first_name": "Tunde",
+    "date_of_birth": "2006-07-21",
+    "gender": "Male",
+    "passport_number": "N60517878",
+    "issue_date": "2025-10-30",
+    "expiry_date": "2031-05-26",
+    "issuing_authority": "Nigeria Immigration Service"
+  },
+  "required_fields": [
+    "full_name",
+    "surname",
+    "date_of_birth",
+    "passport_number",
+    "expiry_date"
+  ],
+  "portrait_present": true,
+  "portrait_bbox": [
+    790,
+    120,
+    950,
+    320
+  ]
+}

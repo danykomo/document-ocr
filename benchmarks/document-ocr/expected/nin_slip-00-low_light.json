@@ -1,0 +1,26 @@
+{
+  "sample_id": "nin_slip-00-low_light",
+  "document_type": "nin_slip",
+  "fields": {
+    "full_name": "Halima Oluwaseun Onyeka",
+    "surname": "Onyeka",
+    "first_name": "Halima",
+    "date_of_birth": "1973-03-10",
+    "gender": "Male",
+    "nin": "26596939007",
+    "address": "23 Ahmadu Bello Way, GRA, Port Harcourt",
+    "issue_date": "2022-04-24"
+  },
+  "required_fields": [
+    "full_name",
+    "date_of_birth",
+    "nin"
+  ],
+  "portrait_present": true,
+  "portrait_bbox": [
+    790,
+    120,
+    950,
+    320
+  ]
+}

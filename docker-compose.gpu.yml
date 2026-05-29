@@ -1,0 +1,51 @@
+# Optional GPU override for faster vLLM inference.
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.gpu.yml \
+#     --profile glm up -d glm-vllm
+#
+# Requires NVIDIA Container Toolkit on the host.
+
+x-vllm-gpu: &vllm-gpu
+  image: ${VLLM_GPU_IMAGE:-vllm/vllm-openai:latest}
+  shm_size: 2g
+  environment:
+    HUGGING_FACE_HUB_TOKEN: ${HUGGING_FACE_HUB_TOKEN:-}
+    HF_TOKEN: ${HUGGING_FACE_HUB_TOKEN:-}
+  deploy:
+    resources:
+      reservations:
+        devices:
+          - driver: nvidia
+            count: 1
+            capabilities: [gpu]
+
+services:
+  qwen-vllm:
+    <<: *vllm-gpu
+    command: >
+      --model Qwen/Qwen3-VL-8B-Instruct
+      --port 8000
+      --trust-remote-code
+      --limit-mm-per-prompt image=1
+
+  glm-vllm:
+    <<: *vllm-gpu
+    command: >
+      --model zai-org/GLM-OCR
+      --port 8000
+      --trust-remote-code
+
+  paddle-vllm:
+    <<: *vllm-gpu
+    command: >
+      --model PaddlePaddle/PaddleOCR-VL
+      --port 8000
+      --trust-remote-code
+
+  olmocr-vllm:
+    <<: *vllm-gpu
+    command: >
+      --model allenai/olmOCR-2-7B-1025
+      --port 8000
+      --trust-remote-code

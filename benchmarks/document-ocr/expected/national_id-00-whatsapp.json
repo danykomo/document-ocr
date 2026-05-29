@@ -1,0 +1,26 @@
+{
+  "sample_id": "national_id-00-whatsapp",
+  "document_type": "national_id",
+  "fields": {
+    "full_name": "Funke Ucheoma Bello",
+    "surname": "Bello",
+    "first_name": "Funke",
+    "date_of_birth": "1977-11-26",
+    "gender": "Male",
+    "nin": "72991680330",
+    "document_number": "609829247",
+    "expiry_date": "2031-05-26"
+  },
+  "required_fields": [
+    "full_name",
+    "date_of_birth",
+    "nin"
+  ],
+  "portrait_present": true,
+  "portrait_bbox": [
+    790,
+    120,
+    950,
+    320
+  ]
+}

@@ -1,0 +1,80 @@
+# Coolify deployment — CPU VLM serving + benchmark harness.
+#
+# Designed for a Linux x86_64 Coolify host with large RAM. On x86_64, vLLM's
+# oneDNN CPU path works (unlike Apple Silicon arm64), so these models load and
+# run on CPU here.
+#
+# Model strategy: serve ONE model at a time via VLLM_MODEL, then run the matching
+# provider in the harness. To benchmark another model, change VLLM_MODEL (and run
+# the matching provider) and redeploy. Model -> provider mapping:
+#   zai-org/GLM-OCR             -> glm-ocr
+#   PaddlePaddle/PaddleOCR-VL   -> paddleocr-vl
+#   Qwen/Qwen3-VL-8B-Instruct   -> qwen-vl
+#   allenai/olmOCR-2-7B-1025    -> olmocr
+#
+# After deploy: open the `bench` container terminal in Coolify and run
+#   document-ocr-bench gen-samples
+#   document-ocr-bench run --providers <provider>,tesseract
+
+services:
+  vllm:
+    # Default = CPU x86_64. If your Coolify host is arm64, this path is slow
+    # (same oneDNN limitation as Apple Silicon) — prefer a GPU host instead.
+    image: ${VLLM_IMAGE:-vllm/vllm-openai-cpu:latest-x86_64}
+    # Entry point is `vllm serve`; the model is a positional argument.
+    command: >
+      ${VLLM_MODEL:-zai-org/GLM-OCR}
+      --port 8000
+      --trust-remote-code
+      --dtype ${VLLM_DTYPE:-auto}
+      --max-model-len ${VLLM_MAX_MODEL_LEN:-8192}
+      --max-num-seqs ${VLLM_MAX_NUM_SEQS:-1}
+    shm_size: "8g"
+    environment:
+      HUGGING_FACE_HUB_TOKEN: ${HUGGING_FACE_HUB_TOKEN:-}
+      HF_TOKEN: ${HUGGING_FACE_HUB_TOKEN:-}
+      VLLM_CPU_KVCACHE_SPACE: ${VLLM_CPU_KVCACHE_SPACE:-8}
+      VLLM_CPU_OMP_THREADS_BIND: ${VLLM_CPU_OMP_THREADS_BIND:-auto}
+    volumes:
+      - hf-cache:/root/.cache/huggingface
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\" || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 60
+      # CPU weight download + load can take a while; don't fail early.
+      start_period: 1800s
+    restart: unless-stopped
+
+  bench:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: innovantics/document-ocr-bench:0.1.0
+    # Stay alive so it can be exec'd interactively from the Coolify terminal.
+    # Override the image ENTRYPOINT (document-ocr-bench); the CLI is still on PATH
+    # for `docker exec ... document-ocr-bench ...`.
+    entrypoint: ["sleep", "infinity"]
+    command: []
+    environment:
+      OCR_DEFAULT_PROVIDER: tesseract
+      OCR_GPU_QUERY_ENABLED: "false"
+      OCR_SYNC_TIMEOUT_MS: ${OCR_SYNC_TIMEOUT_MS:-600000}
+      # All VLM providers target the single vllm service. Run only the provider
+      # that matches the currently-served VLLM_MODEL.
+      OCR_PROVIDER_GLM_OCR_ENDPOINT: http://vllm:8000/v1
+      OCR_PROVIDER_GLM_OCR_MODEL: ${VLLM_MODEL:-zai-org/GLM-OCR}
+      OCR_PROVIDER_PADDLEOCR_VL_ENDPOINT: http://vllm:8000/v1
+      OCR_PROVIDER_PADDLEOCR_VL_MODEL: ${VLLM_MODEL:-zai-org/GLM-OCR}
+      OCR_PROVIDER_QWEN_VL_ENDPOINT: http://vllm:8000/v1
+      OCR_PROVIDER_QWEN_VL_MODEL: ${VLLM_MODEL:-zai-org/GLM-OCR}
+      OCR_PROVIDER_OLMOCR_ENDPOINT: http://vllm:8000/v1
+      OCR_PROVIDER_OLMOCR_MODEL: ${VLLM_MODEL:-zai-org/GLM-OCR}
+    volumes:
+      # Persists generated samples + results across restarts/redeploys.
+      - bench-data:/app/benchmarks
+    restart: unless-stopped
+
+volumes:
+  hf-cache:
+  bench-data:

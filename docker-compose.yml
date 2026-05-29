@@ -1,0 +1,108 @@
+# Document OCR benchmark stack.
+#
+# Profiles let you start only what you need:
+#   docker compose run --rm bench providers
+#   docker compose --profile qwen up -d qwen-vllm
+#   docker compose --profile paddle up -d paddle-vllm
+#
+# Model servers default to CPU via vLLM's official CPU images (no NVIDIA required).
+# For GPU serving, use the optional override:
+#   docker compose -f docker-compose.yml -f docker-compose.gpu.yml --profile qwen up -d qwen-vllm
+#
+# The `bench` harness talks to model servers over OpenAI-compatible HTTP on the
+# internal Docker network. On Coolify (or any host), bring up the profile(s) you
+# need, then:
+#   docker compose run --rm bench run --providers <name>
+
+x-vllm-common: &vllm-common
+  # Official CPU images: https://hub.docker.com/r/vllm/vllm-openai-cpu/tags
+  # Apple Silicon: set VLLM_IMAGE=vllm/vllm-openai-cpu:latest-arm64
+  image: ${VLLM_IMAGE:-vllm/vllm-openai-cpu:latest-x86_64}
+  shm_size: 4g
+  cap_add:
+    - SYS_NICE
+  security_opt:
+    - seccomp=unconfined
+  volumes:
+    - hf-cache:/root/.cache/huggingface
+  environment: &vllm-env
+    HUGGING_FACE_HUB_TOKEN: ${HUGGING_FACE_HUB_TOKEN:-}
+    HF_TOKEN: ${HUGGING_FACE_HUB_TOKEN:-}
+    VLLM_CPU_KVCACHE_SPACE: ${VLLM_CPU_KVCACHE_SPACE:-4}
+    VLLM_CPU_OMP_THREADS_BIND: ${VLLM_CPU_OMP_THREADS_BIND:-auto}
+
+services:
+  bench:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: innovantics/document-ocr-bench:0.1.0
+    volumes:
+      - ./benchmarks:/app/benchmarks
+    environment:
+      OCR_DEFAULT_PROVIDER: ${OCR_DEFAULT_PROVIDER:-tesseract}
+      OCR_ALLOWED_PROVIDERS: ${OCR_ALLOWED_PROVIDERS:-["qwen-vl","glm-ocr","paddleocr-vl","tesseract"]}
+      OCR_LOCAL_ONLY_MODE: ${OCR_LOCAL_ONLY_MODE:-false}
+      OCR_MAX_IMAGE_BYTES: ${OCR_MAX_IMAGE_BYTES:-15728640}
+      OCR_SYNC_TIMEOUT_MS: ${OCR_SYNC_TIMEOUT_MS:-120000}
+      OCR_DEBUG_OUTPUT_ENABLED: ${OCR_DEBUG_OUTPUT_ENABLED:-false}
+      OCR_GPU_QUERY_ENABLED: ${OCR_GPU_QUERY_ENABLED:-true}
+      OCR_PROVIDER_QWEN_VL_ENDPOINT: ${OCR_PROVIDER_QWEN_VL_ENDPOINT:-http://qwen-vllm:8000/v1}
+      OCR_PROVIDER_QWEN_VL_MODEL: ${OCR_PROVIDER_QWEN_VL_MODEL:-Qwen/Qwen3-VL-8B-Instruct}
+      OCR_PROVIDER_QWEN_VL_API_KEY: ${OCR_PROVIDER_QWEN_VL_API_KEY:-}
+      OCR_PROVIDER_GLM_OCR_ENDPOINT: ${OCR_PROVIDER_GLM_OCR_ENDPOINT:-http://glm-vllm:8000/v1}
+      OCR_PROVIDER_GLM_OCR_MODEL: ${OCR_PROVIDER_GLM_OCR_MODEL:-zai-org/GLM-OCR}
+      OCR_PROVIDER_GLM_OCR_API_KEY: ${OCR_PROVIDER_GLM_OCR_API_KEY:-}
+      OCR_PROVIDER_PADDLEOCR_VL_ENDPOINT: ${OCR_PROVIDER_PADDLEOCR_VL_ENDPOINT:-http://paddle-vllm:8000/v1}
+      OCR_PROVIDER_PADDLEOCR_VL_MODEL: ${OCR_PROVIDER_PADDLEOCR_VL_MODEL:-PaddlePaddle/PaddleOCR-VL}
+      OCR_PROVIDER_PADDLEOCR_VL_API_KEY: ${OCR_PROVIDER_PADDLEOCR_VL_API_KEY:-}
+      OCR_PROVIDER_OLMOCR_ENDPOINT: ${OCR_PROVIDER_OLMOCR_ENDPOINT:-http://olmocr-vllm:8000/v1}
+      OCR_PROVIDER_OLMOCR_MODEL: ${OCR_PROVIDER_OLMOCR_MODEL:-allenai/olmOCR-2-7B-1025}
+      OCR_PROVIDER_OLMOCR_API_KEY: ${OCR_PROVIDER_OLMOCR_API_KEY:-}
+      OCR_PROVIDER_TESSERACT_ENABLED: ${OCR_PROVIDER_TESSERACT_ENABLED:-true}
+      OCR_TESSERACT_LANG: ${OCR_TESSERACT_LANG:-eng}
+
+  # --- Model servers (one profile each; CPU by default) -------------------- #
+  qwen-vllm:
+    <<: *vllm-common
+    profiles: ["qwen"]
+    command: >
+      --model Qwen/Qwen3-VL-8B-Instruct
+      --port 8000
+      --trust-remote-code
+      --limit-mm-per-prompt image=1
+      --dtype auto
+    ports: ["18001:8000"]
+
+  glm-vllm:
+    <<: *vllm-common
+    profiles: ["glm"]
+    command: >
+      --model zai-org/GLM-OCR
+      --port 8000
+      --trust-remote-code
+      --dtype auto
+    ports: ["18002:8000"]
+
+  paddle-vllm:
+    <<: *vllm-common
+    profiles: ["paddle"]
+    command: >
+      --model PaddlePaddle/PaddleOCR-VL
+      --port 8000
+      --trust-remote-code
+      --dtype auto
+    ports: ["18003:8000"]
+
+  olmocr-vllm:
+    <<: *vllm-common
+    profiles: ["olmocr"]
+    command: >
+      --model allenai/olmOCR-2-7B-1025
+      --port 8000
+      --trust-remote-code
+      --dtype auto
+    ports: ["18004:8000"]
+
+volumes:
+  hf-cache:

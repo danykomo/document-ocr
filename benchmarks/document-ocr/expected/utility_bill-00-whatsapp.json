@@ -1,0 +1,16 @@
+{
+  "sample_id": "utility_bill-00-whatsapp",
+  "document_type": "utility_bill",
+  "fields": {
+    "full_name": "Segun Oluwaseun Onyeka",
+    "address": "90 Ikorodu Road, Bompai, Kano",
+    "issue_date": "2026-01-27",
+    "issuing_authority": "Ikeja Electric PLC"
+  },
+  "required_fields": [
+    "full_name",
+    "address"
+  ],
+  "portrait_present": false,
+  "portrait_bbox": null
+}

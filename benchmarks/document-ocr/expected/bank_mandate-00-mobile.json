@@ -1,0 +1,17 @@
+{
+  "sample_id": "bank_mandate-00-mobile",
+  "document_type": "bank_mandate",
+  "fields": {
+    "full_name": "Yusuf Oluwaseun Eze",
+    "bvn": "50384291604",
+    "nin": "04040044119",
+    "account_number": "6076755618",
+    "date_of_birth": "1966-02-11",
+    "address": "5 Aminu Kano Crescent, Wuse, Abuja"
+  },
+  "required_fields": [
+    "full_name"
+  ],
+  "portrait_present": false,
+  "portrait_bbox": null
+}

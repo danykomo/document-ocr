@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Benchmark outputs (kept out of git; regenerate with the CLI)
+benchmarks/document-ocr/results/*/
+# Synthetic samples can be regenerated; ignore by default. Real, cleared
+# samples should be committed deliberately and NEVER if they contain PII.
+benchmarks/document-ocr/samples/*.jpg
+benchmarks/document-ocr/samples/*.png
+
+# Secrets
+.env
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
