@@ -52,10 +52,11 @@ services:
       dockerfile: Dockerfile
     image: innovantics/document-ocr-bench:0.1.0
     # Stay alive so it can be exec'd interactively from the Coolify terminal.
-    # Override the image ENTRYPOINT (document-ocr-bench); the CLI is still on PATH
-    # for `docker exec ... document-ocr-bench ...`.
-    entrypoint: ["sleep", "infinity"]
-    command: []
+    # Shell-form entrypoint ignores the image's inherited CMD and overrides the
+    # `document-ocr-bench` ENTRYPOINT; the CLI is still on PATH for
+    # `docker exec ... document-ocr-bench ...`. (No `command:` key — Coolify's
+    # compose validator rejects an empty command list.)
+    entrypoint: ["/bin/sh", "-c", "sleep infinity"]
     environment:
       OCR_DEFAULT_PROVIDER: tesseract
       OCR_GPU_QUERY_ENABLED: "false"
