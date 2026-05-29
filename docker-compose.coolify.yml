@@ -26,9 +26,10 @@ services:
       ${VLLM_MODEL:-zai-org/GLM-OCR}
       --port 8000
       --trust-remote-code
-      --dtype ${VLLM_DTYPE:-auto}
+      --dtype ${VLLM_DTYPE:-float32}
       --max-model-len ${VLLM_MAX_MODEL_LEN:-8192}
       --max-num-seqs ${VLLM_MAX_NUM_SEQS:-1}
+      ${VLLM_EXTRA_ARGS:-}
     shm_size: "8g"
     environment:
       HUGGING_FACE_HUB_TOKEN: ${HUGGING_FACE_HUB_TOKEN:-}

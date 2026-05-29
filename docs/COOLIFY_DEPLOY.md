@@ -86,12 +86,25 @@ the compose). Start with the smallest model:
 ```
 VLLM_IMAGE=vllm/vllm-openai-cpu:latest-x86_64
 VLLM_MODEL=zai-org/GLM-OCR
+VLLM_DTYPE=float32               # REQUIRED on CPUs without bf16/AVX512-BF16 (most). See note.
 VLLM_MAX_MODEL_LEN=8192
 VLLM_MAX_NUM_SEQS=1
 VLLM_CPU_KVCACHE_SPACE=8
 OCR_SYNC_TIMEOUT_MS=600000
 HUGGING_FACE_HUB_TOKEN=          # optional; only if a model download is rate-limited
 ```
+
+> **Why `VLLM_DTYPE=float32` matters.** `--dtype auto` picks **bfloat16**, but most
+> CPUs lack hardware bf16 matmul, so vLLM's oneDNN kernel fails and falls back to a
+> path so slow the server never finishes loading (logs show `Failed to create oneDNN
+> linear` then stalls). `float32` always works on CPU. It doubles model memory
+> (GLM-OCR-0.9B ≈ 4 GB; olmOCR-7B/Qwen-8B ≈ 30 GB), which is why the 0.9B models are
+> the practical CPU choice. Only set bf16/fp16 if your CPU has AVX512-BF16 / AMX.
+
+> **olmOCR / Qwen3-VL on CPU (video-capable models):** they profile with a heavy
+> *video* pass at startup. We only send images, so skip it by also setting
+> `VLLM_EXTRA_ARGS=--limit-mm-per-prompt={"image":1,"video":0}` (no spaces). Do **not**
+> set this for GLM-OCR/PaddleOCR-VL — they have no video modality and will reject it.
 
 > **Persistent storage:** Coolify auto-creates the named volumes `hf-cache`
 > (model weights — keep this so models don't re-download) and `bench-data`
@@ -190,8 +203,10 @@ docker cp <bench-container-name>:/app/benchmarks/document-ocr/results ./ocr-resu
 | Symptom | Cause / Fix |
 | :-- | :-- |
 | `vllm` never goes healthy, logs show download progress | Still pulling weights — wait; first load is slow on CPU. |
-| `vllm` exits **137** | OOM. Give the host/container more RAM, lower `VLLM_MAX_MODEL_LEN`, or serve a smaller model. Don't run two model servers at once. |
-| `vllm` logs `oneDNN ... could not create primitive` then hangs | Host is **arm64**. Use an x86_64 host or a GPU host. |
+| `vllm` exits **137** | OOM. float32 doubles memory — give the host/container more RAM, lower `VLLM_MAX_MODEL_LEN`, or serve a smaller (0.9B) model. Don't run two model servers at once. |
+| `vllm` logs `Failed to create oneDNN linear ... could not create a primitive descriptor for the matmul primitive` then stalls in profiling | CPU lacks bf16 matmul support. Set **`VLLM_DTYPE=float32`** and redeploy. (Not arm-specific — happens on any CPU without AVX512-BF16/AMX.) |
+| `vllm` stalls at `profiled with 1 video items` (olmOCR / Qwen) | Heavy video profiling. Set `VLLM_EXTRA_ARGS=--limit-mm-per-prompt={"image":1,"video":0}` and redeploy. |
+| `Unknown vLLM environment variable detected: VLLM_MODEL` | Harmless — `VLLM_MODEL` is used for compose substitution; vLLM just doesn't recognize it as one of its own env vars. |
 | Provider run errors with model-name mismatch | The provider you ran doesn't match `VLLM_MODEL`. Use the mapping table in §7. |
 | `document-ocr-bench: command not found` in exec | You exec'd the wrong container — target the **bench** container, not `vllm`. |
 | Download rate-limited | Set `HUGGING_FACE_HUB_TOKEN` and redeploy. |
