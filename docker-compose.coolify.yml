@@ -61,16 +61,15 @@ services:
       OCR_DEFAULT_PROVIDER: tesseract
       OCR_GPU_QUERY_ENABLED: "false"
       OCR_SYNC_TIMEOUT_MS: ${OCR_SYNC_TIMEOUT_MS:-600000}
-      # All VLM providers target the single vllm service. Run only the provider
-      # that matches the currently-served VLLM_MODEL.
+      # All VLM providers target the single vllm service, but keep their own
+      # canonical model names. Only the provider whose model matches the served
+      # VLLM_MODEL reports "available"; the others self-report a clear mismatch
+      # (run `document-ocr-bench providers` to see this). Serving a non-default
+      # variant? Set both VLLM_MODEL and that provider's *_MODEL to the same value.
       OCR_PROVIDER_GLM_OCR_ENDPOINT: http://vllm:8000/v1
-      OCR_PROVIDER_GLM_OCR_MODEL: ${VLLM_MODEL:-zai-org/GLM-OCR}
       OCR_PROVIDER_PADDLEOCR_VL_ENDPOINT: http://vllm:8000/v1
-      OCR_PROVIDER_PADDLEOCR_VL_MODEL: ${VLLM_MODEL:-zai-org/GLM-OCR}
       OCR_PROVIDER_QWEN_VL_ENDPOINT: http://vllm:8000/v1
-      OCR_PROVIDER_QWEN_VL_MODEL: ${VLLM_MODEL:-zai-org/GLM-OCR}
       OCR_PROVIDER_OLMOCR_ENDPOINT: http://vllm:8000/v1
-      OCR_PROVIDER_OLMOCR_MODEL: ${VLLM_MODEL:-zai-org/GLM-OCR}
     volumes:
       # Persists generated samples + results across restarts/redeploys.
       - bench-data:/app/benchmarks

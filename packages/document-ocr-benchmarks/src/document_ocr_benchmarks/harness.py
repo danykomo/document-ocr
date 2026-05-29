@@ -134,6 +134,27 @@ def run_benchmark(
         json.dumps([r.model_dump(by_alias=True) for r in results], indent=2)
     )
     console.print(f"[green]Wrote {len(results)} results to {out_dir}[/green]")
+
+    # Surface providers that errored, so a broken VLM isn't mistaken for a real
+    # (fast, low-scoring) result. Quality/portrait run locally and can succeed
+    # even when the model endpoint is failing, which otherwise looks "simulated".
+    by_provider: dict[str, list[BenchmarkResult]] = {}
+    for r in results:
+        by_provider.setdefault(r.candidate, []).append(r)
+    for name, rows in by_provider.items():
+        errored = [r for r in rows if r.error_code]
+        if not errored:
+            continue
+        sample_err = next((r.error for r in errored if r.error), "")
+        console.print(
+            f"[yellow]⚠ {name}: {len(errored)}/{len(rows)} samples errored[/yellow] "
+            f"(e.g. {sample_err[:160]})"
+        )
+        if len(errored) == len(rows):
+            console.print(
+                f"  [red]{name} failed on every sample — its scores are not real "
+                f"inference. Check the model endpoint before trusting the ranking.[/red]"
+            )
     return BenchmarkRun(run_id, results, meta)
 
 

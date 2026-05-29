@@ -7,6 +7,18 @@ Click-by-click guide to run the VLM/OCR benchmark on your Coolify server, on CPU
 > where it falls back to a path too slow to even finish model loading. A normal
 > x86_64 Coolify host with adequate RAM runs these models on CPU fine.
 
+## Two containers, two jobs (read this)
+
+This deployment has **two** containers:
+
+| Container | Image | Job | Do you run commands here? |
+| :-- | :-- | :-- | :-- |
+| `vllm` | `vllm/vllm-openai-cpu` | Serves ONE model over HTTP. That's all it does. | **No.** `document-ocr-bench` is not installed here — running it gives "not found". |
+| `bench` | `innovantics/document-ocr-bench` | Runs the benchmark CLI, calls `vllm` over HTTP, scores, reports. | **Yes — always here.** |
+
+So: the `vllm` service just answers model requests; you drive everything from the
+**`bench`** container's terminal.
+
 ---
 
 ## 0. Check your Coolify host first (30 seconds)
@@ -98,9 +110,25 @@ HUGGING_FACE_HUB_TOKEN=          # optional; only if a model download is rate-li
 3. The deployment may show "degraded" while `vllm` is still downloading — that's
    expected; watch the `vllm` logs until you see the API server start listening.
 
-## 6. Run the benchmark
+## 6. Run the benchmark (in the `bench` container)
 
-Open the **`bench`** service → **Terminal** (Execute Command) and run:
+Open the **`bench`** service → **Terminal** (Execute Command).
+
+**First, confirm the model is actually reachable** — this is a real health check
+and prevents the "VLM runs instantly / Tesseract always wins" trap (a VLM that
+returns instantly is *failing fast*, not inferring):
+
+```bash
+document-ocr-bench providers
+```
+
+You want the served model's provider to show **Avail = yes**. If instead you see:
+- `glm-ocr: cannot reach http://vllm:8000/v1 (ConnectError)` → `vllm` isn't ready
+  yet (still downloading/loading) or crashed. Wait, or check the `vllm` logs.
+- `glm-ocr: endpoint serves ['X'], not 'Y'` → you're running the wrong provider
+  for the served model. Use the mapping in §7 (run the provider matching `VLLM_MODEL`).
+
+Only once the matching provider shows **yes**, run the benchmark:
 
 ```bash
 document-ocr-bench gen-samples
@@ -108,7 +136,9 @@ document-ocr-bench run --providers glm-ocr,tesseract
 ```
 
 (`glm-ocr` because `VLLM_MODEL=zai-org/GLM-OCR`. Always run the provider that
-matches the served model — see the mapping below.)
+matches the served model — see the mapping below.) If a provider errors on samples
+mid-run, the CLI now prints a loud `⚠ <provider>: N/N samples errored` warning so
+you never mistake a broken endpoint for a real low score.
 
 View the report:
 

@@ -96,12 +96,39 @@ class OpenAICompatibleVLM(ProviderRunner):
         }
 
     def is_available(self) -> tuple[bool, Optional[str]]:
+        """Probe the endpoint so a misconfigured VLM is reported, not silently scored 0.
+
+        Checks, in order: httpx installed, endpoint configured, endpoint
+        reachable, and the configured model is actually being served. This makes
+        ``document-ocr-bench providers`` a usable health check.
+        """
         try:
-            import httpx  # noqa: F401
+            import httpx
         except ImportError:
             return False, "httpx not installed"
         if not self._ep.endpoint:
-            return False, f"endpoint not configured (set OCR_PROVIDER_*_ENDPOINT)"
+            return False, "endpoint not configured (set OCR_PROVIDER_*_ENDPOINT)"
+
+        url = self._ep.endpoint.rstrip("/") + "/models"
+        headers = {}
+        if self._ep.api_key:
+            headers["Authorization"] = f"Bearer {self._ep.api_key}"
+        try:
+            with httpx.Client(timeout=5.0) as client:
+                resp = client.get(url, headers=headers)
+                resp.raise_for_status()
+                data = resp.json()
+        except Exception as exc:
+            return False, f"cannot reach {self._ep.endpoint} ({type(exc).__name__})"
+
+        served = [m.get("id") for m in data.get("data", []) if isinstance(m, dict)]
+        if self._ep.model and served and self._ep.model not in served:
+            return (
+                False,
+                f"endpoint serves {served}, not '{self._ep.model}' — "
+                f"run the provider whose model matches, or set this provider's "
+                f"model env to the served one",
+            )
         return True, None
 
     # -- low-level chat call ---------------------------------------------- #
