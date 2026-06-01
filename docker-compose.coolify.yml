@@ -78,10 +78,13 @@ services:
 
   # Web file manager for the bench-data volume.
   # Drag-drop files at /document-ocr/samples/ etc. instead of base64-pasting in
-  # the terminal. Expose via a Coolify domain (HTTPS auto-provisioned). Change
-  # the default admin/admin login on first visit.
+  # the terminal. Expose via a Coolify domain (HTTPS auto-provisioned).
+  # First login: `admin` + the random password printed to this container's logs
+  # (or reset via `filebrowser users update admin --password ...`).
   filebrowser:
     image: filebrowser/filebrowser:latest
+    # Pin the DB inside the persisted volume so user/password survives redeploys.
+    command: ["--database", "/database/filebrowser.db", "--port", "80", "--address", "0.0.0.0"]
     volumes:
       - bench-data:/srv
       - filebrowser-db:/database
