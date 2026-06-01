@@ -87,44 +87,48 @@ def _address(rng: random.Random) -> str:
 # --------------------------------------------------------------------------- #
 def _build_fields(doc_type: DocumentType, rng: random.Random) -> dict[str, str]:
     first, middle, surname = _name_parts(rng)
-    full = f"{first} {middle} {surname}"
+    # full_name comes in two flavours: docs that render Surname + First Name
+    # lines separately get the no-middle form (matches what's visible); docs that
+    # render a single "Name:" line get the full first-middle-surname form.
+    full_split = f"{first} {surname}"
+    full_combined = f"{first} {middle} {surname}"
     gender = rng.choice(["Male", "Female"])
     dob = _dob(rng)
     addr = _address(rng)
 
     if doc_type == DocumentType.NIN_SLIP:
-        return {"full_name": full, "surname": surname, "first_name": first,
+        return {"full_name": full_split, "surname": surname, "first_name": first,
                 "date_of_birth": dob, "gender": gender, "nin": _digits(rng, 11),
                 "address": addr, "issue_date": _past_date(rng)}
     if doc_type == DocumentType.NATIONAL_ID:
-        return {"full_name": full, "surname": surname, "first_name": first,
+        return {"full_name": full_split, "surname": surname, "first_name": first,
                 "date_of_birth": dob, "gender": gender, "nin": _digits(rng, 11),
                 "document_number": _digits(rng, 9), "expiry_date": _future_date(rng)}
     if doc_type == DocumentType.PASSPORT:
-        return {"full_name": full, "surname": surname, "first_name": first,
+        return {"full_name": full_split, "surname": surname, "first_name": first,
                 "date_of_birth": dob, "gender": gender,
                 "passport_number": rng.choice("ABCN") + _digits(rng, 8),
                 "issue_date": _past_date(rng), "expiry_date": _future_date(rng),
                 "issuing_authority": _AUTHORITIES[DocumentType.PASSPORT]}
     if doc_type == DocumentType.DRIVERS_LICENSE:
-        return {"full_name": full, "date_of_birth": dob, "gender": gender,
+        return {"full_name": full_combined, "date_of_birth": dob, "gender": gender,
                 "drivers_license_number": surname[:3].upper() + _digits(rng, 8),
                 "issue_date": _past_date(rng), "expiry_date": _future_date(rng),
                 "address": addr,
                 "issuing_authority": _AUTHORITIES[DocumentType.DRIVERS_LICENSE]}
     if doc_type == DocumentType.VOTER_ID:
-        return {"full_name": full, "date_of_birth": dob, "gender": gender,
+        return {"full_name": full_combined, "date_of_birth": dob, "gender": gender,
                 "document_number": _digits(rng, 19), "address": addr}
     if doc_type == DocumentType.BANK_MANDATE:
-        return {"full_name": full, "bvn": _digits(rng, 11), "nin": _digits(rng, 11),
+        return {"full_name": full_combined, "bvn": _digits(rng, 11), "nin": _digits(rng, 11),
                 "account_number": _digits(rng, 10), "date_of_birth": dob, "address": addr}
     if doc_type == DocumentType.UTILITY_BILL:
-        return {"full_name": full, "address": addr, "issue_date": _past_date(rng, 1),
+        return {"full_name": full_combined, "address": addr, "issue_date": _past_date(rng, 1),
                 "issuing_authority": _AUTHORITIES[DocumentType.UTILITY_BILL]}
     if doc_type == DocumentType.BANK_STATEMENT:
-        return {"full_name": full, "account_number": _digits(rng, 10), "address": addr,
+        return {"full_name": full_combined, "account_number": _digits(rng, 10), "address": addr,
                 "issue_date": _past_date(rng, 1), "issuing_authority": rng.choice(_BANKS)}
-    return {"full_name": full}
+    return {"full_name": full_combined}
 
 
 _TITLES = {

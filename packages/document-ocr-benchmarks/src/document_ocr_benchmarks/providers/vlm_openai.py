@@ -72,6 +72,81 @@ def _extract_json(text: str) -> Optional[dict]:
         return None
 
 
+# Common label variants the model sees in the document mapped to schema fields.
+# OCR-specialized models (GLM-OCR, PaddleOCR-VL) tend to mirror the on-document
+# labels as JSON keys ("Sex", "Date of Birth", "NIN") rather than the snake_case
+# names we ask for in the prompt — coerce both so the parser is forgiving.
+_KEY_ALIASES = {
+    "sex": "gender",
+    "given_name": "first_name",
+    "given_names": "first_name",
+    "last_name": "surname",
+    "family_name": "surname",
+    "name": "full_name",
+    "full_names": "full_name",
+    "date_of_issue": "issue_date",
+    "issued": "issue_date",
+    "date_issued": "issue_date",
+    "date_of_expiry": "expiry_date",
+    "expires": "expiry_date",
+    "expiry": "expiry_date",
+    "valid_till": "expiry_date",
+    "passport_no": "passport_number",
+    "licence_no": "drivers_license_number",
+    "license_no": "drivers_license_number",
+    "licence_number": "drivers_license_number",
+    "license_number": "drivers_license_number",
+    "document_no": "document_number",
+    "id_no": "document_number",
+    "card_no": "document_number",
+    "vin": "document_number",
+    "account_no": "account_number",
+    "acct_no": "account_number",
+    "bank_verification_number": "bvn",
+    "national_identification_number": "nin",
+    "issued_by": "issuing_authority",
+    "authority": "issuing_authority",
+    "residential_address": "address",
+    "dob": "date_of_birth",
+    "birth_date": "date_of_birth",
+}
+
+
+def _normalize_key(k: str) -> str:
+    """``"First Name"`` → ``"first_name"``; ``"Date-of-Issue."`` → ``"date_of_issue"``."""
+    return re.sub(r"[^a-z0-9]+", "_", k.strip().lower()).strip("_")
+
+
+def _coerce_keys(parsed: dict, schema_field_names: list[str]) -> dict:
+    """Map the model's natural label-keys onto the requested schema field names."""
+    result: dict = {}
+    schema_set = set(schema_field_names)
+    for raw_k, v in parsed.items():
+        if not isinstance(raw_k, str):
+            continue
+        norm = _normalize_key(raw_k)
+        target = (
+            norm if norm in schema_set
+            else _KEY_ALIASES.get(norm) if _KEY_ALIASES.get(norm) in schema_set
+            else None
+        )
+        if target and target not in result:
+            result[target] = v
+    # If the document shows surname + first (+ middle) separately, derive full_name
+    # so models that don't synthesize it themselves aren't penalised.
+    if "full_name" in schema_set and "full_name" not in result:
+        parts = []
+        for part_key in ("first_name", "middle_name", "surname"):
+            v = result.get(part_key)
+            if isinstance(v, dict):
+                v = v.get("value")
+            if v:
+                parts.append(str(v))
+        if parts:
+            result["full_name"] = " ".join(parts)
+    return result
+
+
 class OpenAICompatibleVLM(ProviderRunner):
     """Generic runner against an OpenAI-compatible chat-completions endpoint."""
 
@@ -192,6 +267,7 @@ class OpenAICompatibleVLM(ProviderRunner):
         parsed = _extract_json(out)
         if parsed is None:
             return FieldExtractionResult(schema_followed=False)
+        parsed = _coerce_keys(parsed, schema.field_names)
         fields: dict[str, FieldValue] = {}
         for fname in schema.field_names:
             entry = parsed.get(fname)
