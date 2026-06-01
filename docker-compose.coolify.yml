@@ -76,6 +76,19 @@ services:
       - bench-data:/app/benchmarks
     restart: unless-stopped
 
+  # Web file manager for the bench-data volume.
+  # Drag-drop files at /document-ocr/samples/ etc. instead of base64-pasting in
+  # the terminal. Expose via a Coolify domain (HTTPS auto-provisioned). Change
+  # the default admin/admin login on first visit.
+  filebrowser:
+    image: filebrowser/filebrowser:latest
+    volumes:
+      - bench-data:/srv
+      - filebrowser-db:/database
+    expose: ["80"]
+    restart: unless-stopped
+
 volumes:
   hf-cache:
   bench-data:
+  filebrowser-db:
