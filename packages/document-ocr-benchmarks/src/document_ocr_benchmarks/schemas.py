@@ -52,13 +52,17 @@ def _f(*args, **kwargs) -> FieldSpec:  # tiny ctor alias for table readability
 
 SCHEMAS: dict[DocumentType, DocumentSchema] = {
     DocumentType.NIN_SLIP: DocumentSchema(
-        schema_id="ng_nin_slip_v1",
+        # Real NIN slips print Surname / First Name / Middle Name as separate
+        # lines — there is no combined "full name" on the document. The harness
+        # still synthesises full_name from the parts in _coerce_keys when a
+        # caller wants it, but it isn't a scoreable field here.
+        schema_id="ng_nin_slip_v2",
         document_type=DocumentType.NIN_SLIP,
         portrait_expected=True,
         fields=[
-            _f("full_name", "name", required=True),
-            _f("surname", "name"),
-            _f("first_name", "name"),
+            _f("surname", "name", required=True),
+            _f("first_name", "name", required=True),
+            _f("middle_name", "name"),
             _f("date_of_birth", "date", required=True),
             _f("gender", "text"),
             _f("nin", "number", required=True, validator=validate_nin),
