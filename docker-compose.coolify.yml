@@ -83,6 +83,7 @@ services:
   # (or reset via `filebrowser users update admin --password ...`).
   filebrowser:
     image: filebrowser/filebrowser:latest
+    user: "0:0"
     # Pin the DB inside the persisted volume so user/password survives redeploys.
     command: ["--database", "/database/filebrowser.db", "--port", "80", "--address", "0.0.0.0"]
     volumes:
