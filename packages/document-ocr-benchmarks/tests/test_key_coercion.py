@@ -40,8 +40,9 @@ def test_coerce_keys_maps_glm_ocr_response_to_schema():
     assert out["nin"] == "26596939007"
     assert out["address"] == "23 Ahmadu Bello Way, GRA, Port Harcourt"
     assert out["issue_date"] == "2022-04-29"   # "Date of Issue" alias
-    # And full_name is derived from the parts the document shows.
-    assert out["full_name"] == "Halima Onyeka"
+    # full_name is not in the NIN_SLIP schema anymore (real slips show
+    # surname/first/middle separately), so the coercer must not synthesise one.
+    assert "full_name" not in out
 
 
 def test_coerce_keys_does_not_override_explicit_full_name():
@@ -55,11 +56,14 @@ def test_coerce_keys_does_not_override_explicit_full_name():
 
 
 def test_coerce_keys_handles_object_value_form():
+    """Object form ({"value":..,"confidence":..}) survives coercion intact."""
     schema = schema_for(DocumentType.NIN_SLIP)
     parsed = {
         "Surname": {"value": "Onyeka", "confidence": 0.9},
         "First Name": {"value": "Halima", "confidence": 0.9},
     }
     out = _coerce_keys(parsed, schema.field_names)
-    # Object form preserved at the value-dict level; full_name derived from it.
-    assert out["full_name"] == "Halima Onyeka"
+    assert out["surname"] == {"value": "Onyeka", "confidence": 0.9}
+    assert out["first_name"] == {"value": "Halima", "confidence": 0.9}
+
+
