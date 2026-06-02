@@ -135,9 +135,11 @@ def run_benchmark(
     )
     console.print(f"[green]Wrote {len(results)} results to {out_dir}[/green]")
 
-    # Surface providers that errored, so a broken VLM isn't mistaken for a real
-    # (fast, low-scoring) result. Quality/portrait run locally and can succeed
-    # even when the model endpoint is failing, which otherwise looks "simulated".
+    # Surface providers that errored. Distinguish two cases:
+    #  - Total failure: every sample errored AND field accuracy is ~0 — the model
+    #    endpoint is broken; don't trust the ranking.
+    #  - Partial failure: some op errored (e.g. extract_text timed out on CPU)
+    #    but field extraction still produced useful results — flag softly.
     by_provider: dict[str, list[BenchmarkResult]] = {}
     for r in results:
         by_provider.setdefault(r.candidate, []).append(r)
@@ -145,15 +147,20 @@ def run_benchmark(
         errored = [r for r in rows if r.error_code]
         if not errored:
             continue
+        mean_acc = sum(r.field_accuracy for r in rows) / len(rows)
         sample_err = next((r.error for r in errored if r.error), "")
-        console.print(
-            f"[yellow]⚠ {name}: {len(errored)}/{len(rows)} samples errored[/yellow] "
-            f"(e.g. {sample_err[:160]})"
-        )
-        if len(errored) == len(rows):
+        total_failure = len(errored) == len(rows) and mean_acc < 0.10
+        if total_failure:
             console.print(
-                f"  [red]{name} failed on every sample — its scores are not real "
-                f"inference. Check the model endpoint before trusting the ranking.[/red]"
+                f"[red]⚠ {name}: failed on every sample with no useful extraction "
+                f"(field_acc {mean_acc:.2f}). Check the model endpoint before "
+                f"trusting the ranking. Example: {sample_err[:160]}[/red]"
+            )
+        else:
+            console.print(
+                f"[yellow]⚠ {name}: {len(errored)}/{len(rows)} samples had a "
+                f"partial op failure (field_acc still {mean_acc:.2f}); "
+                f"e.g. {sample_err[:160]}[/yellow]"
             )
     return BenchmarkRun(run_id, results, meta)
 
