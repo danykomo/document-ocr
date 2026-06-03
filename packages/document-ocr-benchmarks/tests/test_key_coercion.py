@@ -35,14 +35,14 @@ def test_coerce_keys_maps_glm_ocr_response_to_schema():
     out = _coerce_keys(parsed, schema.field_names)
     assert out["surname"] == "Onyeka"
     assert out["first_name"] == "Halima"
-    assert out["date_of_birth"] == "1973-03-10"
     assert out["gender"] == "Male"             # "Sex" alias
     assert out["nin"] == "26596939007"
     assert out["address"] == "23 Ahmadu Bello Way, GRA, Port Harcourt"
-    assert out["issue_date"] == "2022-04-29"   # "Date of Issue" alias
-    # full_name is not in the NIN_SLIP schema anymore (real slips show
-    # surname/first/middle separately), so the coercer must not synthesise one.
+    # full_name, date_of_birth, issue_date are NOT on a real basic NIN slip;
+    # the coercer must silently drop them rather than fabricate values.
     assert "full_name" not in out
+    assert "date_of_birth" not in out
+    assert "issue_date" not in out
 
 
 def test_coerce_keys_does_not_override_explicit_full_name():

@@ -12,14 +12,29 @@ from datetime import date, datetime
 from typing import Optional
 
 # Field "kinds" drive both normalization and scoring strategy.
-NAME_FIELDS = {"full_name", "fullName", "first_name", "firstName", "middle_name",
-               "middleName", "surname", "last_name"}
-DATE_FIELDS = {"date_of_birth", "dateOfBirth", "issue_date", "issueDate",
-               "expiry_date", "expiryDate", "dob"}
-NUMBER_FIELDS = {"nin", "bvn", "passport_number", "passportNumber",
-                 "drivers_license_number", "driversLicenseNumber",
-                 "document_number", "documentNumber", "account_number",
-                 "accountNumber"}
+# name/address/text → fuzzy partial credit; date/number → strict (exact after norm).
+NAME_FIELDS = {
+    "full_name", "fullName", "first_name", "firstName",
+    "middle_name", "middleName", "surname", "last_name",
+    "company_name",
+}
+DATE_FIELDS = {
+    "date_of_birth", "dateOfBirth", "issue_date", "issueDate",
+    "expiry_date", "expiryDate", "dob",
+    "due_date", "incorporation_date", "registration_date",
+}
+NUMBER_FIELDS = {
+    "nin", "bvn",
+    "passport_number", "passportNumber",
+    "drivers_license_number", "driversLicenseNumber",
+    "document_number", "documentNumber",
+    "account_number", "accountNumber",
+    "meter_number", "registration_number",
+    "tracking_id", "polling_unit_code",
+    # Money values are scored strictly — small OCR slips on currency matter.
+    "amount_due", "opening_balance", "closing_balance",
+}
+PHONE_FIELDS = {"phone_number", "phoneNumber", "phone", "telephone"}
 
 
 def field_kind(field: str) -> str:
@@ -29,6 +44,8 @@ def field_kind(field: str) -> str:
         return "date"
     if field in NUMBER_FIELDS:
         return "number"
+    if field in PHONE_FIELDS:
+        return "number"  # phones scored strictly after digit normalisation
     if field in {"address"}:
         return "address"
     return "text"

@@ -18,24 +18,58 @@ from ..schemas import DocumentSchema
 
 # Mapping of schema field name → label strings that appear on Nigerian documents.
 _LABELS_BY_FIELD: dict[str, tuple[str, ...]] = {
+    # Names
     "surname": ("surname", "last name", "family name"),
     "first_name": ("first name", "given name", "given names", "firstname", "firstnames"),
     "middle_name": ("middle name", "middle names", "other names"),
-    "full_name": ("name", "full name", "full names"),
+    "full_name": ("name", "full name", "full names", "account name", "customer name"),
+    "company_name": ("company name", "registered name", "name of company"),
+    # Demographics
     "date_of_birth": ("date of birth", "dob", "birth date"),
     "gender": ("sex", "gender"),
+    "nationality": ("nationality", "country"),
+    "place_of_birth": ("place of birth", "pob"),
+    "occupation": ("occupation", "profession", "employment"),
+    "blood_group": ("blood group", "blood type"),
+    "height": ("height",),
+    # Identity numbers
     "nin": ("nin", "national identification number", "national id number"),
+    "tracking_id": ("tracking id", "tracking", "tracking number"),
     "bvn": ("bvn", "bank verification number"),
     "passport_number": ("passport no", "passport number"),
     "drivers_license_number": (
         "licence no", "license no", "licence number", "license number",
+        "dl no", "dl number",
     ),
-    "document_number": ("document no", "id no", "card no", "vin", "voter id"),
-    "account_number": ("account no", "account number", "acct no"),
-    "issue_date": ("issue date", "date of issue", "issued"),
+    "document_number": (
+        "document no", "id no", "card no", "vin", "voter id",
+        "voter identification number",
+    ),
+    "account_number": ("account no", "account number", "acct no", "nuban"),
+    "meter_number": ("meter no", "meter number", "meter id"),
+    "registration_number": ("registration no", "registration number", "rc number",
+                            "rc no", "bn number", "bn no", "rc/bc number"),
+    "polling_unit_code": ("polling unit", "pu code", "polling unit code"),
+    # Dates
+    "issue_date": ("issue date", "date of issue", "issued", "date issued"),
     "expiry_date": ("expiry", "expiry date", "date of expiry", "expires", "valid till"),
-    "address": ("address", "residential address"),
-    "issuing_authority": ("authority", "issued by"),
+    "due_date": ("due date", "payment due", "pay by"),
+    "registration_date": ("registration date", "date of registration", "date registered"),
+    "incorporation_date": ("date of incorporation", "incorporated on",
+                           "date of registration", "registered on"),
+    # Address / authority / period
+    "address": ("address", "residential address", "service address", "registered address"),
+    "issuing_authority": ("authority", "issued by", "issuing authority", "bank"),
+    "issuing_state": ("state of issue", "issuing state", "state"),
+    "branch_name": ("branch", "branch name"),
+    "billing_period": ("billing period", "bill period", "period"),
+    "statement_period": ("statement period", "period", "for the period"),
+    # Money
+    "amount_due": ("amount due", "total due", "amount payable", "balance due"),
+    "opening_balance": ("opening balance", "balance brought forward", "b/f"),
+    "closing_balance": ("closing balance", "balance carried forward", "c/f"),
+    # Contact
+    "phone_number": ("phone", "telephone", "mobile", "phone no", "telephone no"),
 }
 
 

@@ -86,49 +86,107 @@ def _address(rng: random.Random) -> str:
 # Field builders per document type
 # --------------------------------------------------------------------------- #
 def _build_fields(doc_type: DocumentType, rng: random.Random) -> dict[str, str]:
+    """Build ground-truth fields that match what would actually be printed on the
+    rendered document. Aligned with schemas.py — fields stay in sync with the
+    schema's ``field_names`` list."""
     first, middle, surname = _name_parts(rng)
-    # full_name comes in two flavours: docs that render Surname + First Name
-    # lines separately get the no-middle form (matches what's visible); docs that
-    # render a single "Name:" line get the full first-middle-surname form.
-    full_split = f"{first} {surname}"
     full_combined = f"{first} {middle} {surname}"
     gender = rng.choice(["Male", "Female"])
     dob = _dob(rng)
     addr = _address(rng)
 
     if doc_type == DocumentType.NIN_SLIP:
-        return {"full_name": full_split, "surname": surname, "first_name": first,
-                "date_of_birth": dob, "gender": gender, "nin": _digits(rng, 11),
-                "address": addr, "issue_date": _past_date(rng)}
+        return {
+            "tracking_id": "".join(rng.choices("ABCDEFGHJKLMNPQRSTUVWXYZ", k=2)) + _digits(rng, 8),
+            "surname": surname, "first_name": first, "middle_name": middle,
+            "gender": gender,
+            "nin": _digits(rng, 11),
+            "address": addr,
+        }
     if doc_type == DocumentType.NATIONAL_ID:
-        return {"full_name": full_split, "surname": surname, "first_name": first,
-                "date_of_birth": dob, "gender": gender, "nin": _digits(rng, 11),
-                "document_number": _digits(rng, 9), "expiry_date": _future_date(rng)}
+        return {
+            "surname": surname, "first_name": first, "middle_name": middle,
+            "date_of_birth": dob, "gender": gender,
+            "nin": _digits(rng, 11),
+            "document_number": _digits(rng, 9),
+            "nationality": "Nigerian",
+            "issue_date": _past_date(rng),
+            "expiry_date": _future_date(rng),
+        }
     if doc_type == DocumentType.PASSPORT:
-        return {"full_name": full_split, "surname": surname, "first_name": first,
-                "date_of_birth": dob, "gender": gender,
-                "passport_number": rng.choice("ABCN") + _digits(rng, 8),
-                "issue_date": _past_date(rng), "expiry_date": _future_date(rng),
-                "issuing_authority": _AUTHORITIES[DocumentType.PASSPORT]}
+        return {
+            "surname": surname, "first_name": first, "middle_name": middle,
+            "date_of_birth": dob, "gender": gender,
+            "passport_number": rng.choice("ABCN") + _digits(rng, 8),
+            "nationality": "NIGERIAN",
+            "place_of_birth": rng.choice(["LAGOS", "ABUJA", "KANO", "IBADAN"]),
+            "issue_date": _past_date(rng), "expiry_date": _future_date(rng),
+            "issuing_authority": _AUTHORITIES[DocumentType.PASSPORT],
+        }
     if doc_type == DocumentType.DRIVERS_LICENSE:
-        return {"full_name": full_combined, "date_of_birth": dob, "gender": gender,
-                "drivers_license_number": surname[:3].upper() + _digits(rng, 8),
-                "issue_date": _past_date(rng), "expiry_date": _future_date(rng),
-                "address": addr,
-                "issuing_authority": _AUTHORITIES[DocumentType.DRIVERS_LICENSE]}
+        return {
+            "surname": surname, "first_name": first, "middle_name": middle,
+            "date_of_birth": dob, "gender": gender,
+            "drivers_license_number": surname[:3].upper() + _digits(rng, 8),
+            "issue_date": _past_date(rng), "expiry_date": _future_date(rng),
+            "address": addr,
+            "issuing_state": rng.choice(["Lagos", "Abuja", "Kano", "Rivers"]),
+            "blood_group": rng.choice(["O+", "A+", "B+", "AB+", "O-", "A-"]),
+            "height": str(rng.randint(150, 195)) + "cm",
+        }
     if doc_type == DocumentType.VOTER_ID:
-        return {"full_name": full_combined, "date_of_birth": dob, "gender": gender,
-                "document_number": _digits(rng, 19), "address": addr}
+        return {
+            "full_name": full_combined,
+            "date_of_birth": dob, "gender": gender,
+            "occupation": rng.choice(["TEACHER", "TRADER", "ENGINEER", "STUDENT"]),
+            "address": addr,
+            "document_number": _digits(rng, 19),
+            "polling_unit_code": _digits(rng, 9),
+            "registration_date": _past_date(rng, 5),
+        }
     if doc_type == DocumentType.BANK_MANDATE:
-        return {"full_name": full_combined, "bvn": _digits(rng, 11), "nin": _digits(rng, 11),
-                "account_number": _digits(rng, 10), "date_of_birth": dob, "address": addr}
+        return {
+            "full_name": full_combined,
+            "bvn": _digits(rng, 11),
+            "nin": _digits(rng, 11),
+            "account_number": _digits(rng, 10),
+            "date_of_birth": dob, "gender": gender,
+            "phone_number": "0" + _digits(rng, 10),
+            "address": addr,
+        }
     if doc_type == DocumentType.UTILITY_BILL:
-        return {"full_name": full_combined, "address": addr, "issue_date": _past_date(rng, 1),
-                "issuing_authority": _AUTHORITIES[DocumentType.UTILITY_BILL]}
+        amount = rng.randint(2000, 45000)
+        return {
+            "full_name": full_combined,
+            "address": addr,
+            "account_number": _digits(rng, 10),
+            "meter_number": _digits(rng, 11),
+            "billing_period": rng.choice(["April 2026", "May 2026", "June 2026"]),
+            "amount_due": f"N{amount:,}.00",
+            "due_date": _future_date(rng, 0, 1),
+            "issuing_authority": _AUTHORITIES[DocumentType.UTILITY_BILL],
+        }
     if doc_type == DocumentType.BANK_STATEMENT:
-        return {"full_name": full_combined, "account_number": _digits(rng, 10), "address": addr,
-                "issue_date": _past_date(rng, 1), "issuing_authority": rng.choice(_BANKS)}
-    return {"full_name": full_combined}
+        return {
+            "full_name": full_combined,
+            "account_number": _digits(rng, 10),
+            "issuing_authority": rng.choice(_BANKS),
+            "branch_name": rng.choice(["Ikeja", "Victoria Island", "Wuse 2", "GRA Ikoyi"]),
+            "address": addr,
+            "statement_period": rng.choice(["01-Apr-2026 to 30-Apr-2026",
+                                            "01-May-2026 to 31-May-2026"]),
+            "opening_balance": f"N{rng.randint(0, 999999):,}.00",
+            "closing_balance": f"N{rng.randint(0, 999999):,}.00",
+        }
+    if doc_type == DocumentType.CAC_DOCUMENT:
+        return {
+            "company_name": (rng.choice(["AKWA", "ZENITH", "PALM", "OBI"]) + " "
+                             + rng.choice(["VENTURES", "GROUP", "LIMITED", "ENTERPRISES"])),
+            "registration_number": "RC" + _digits(rng, 7),
+            "incorporation_date": _past_date(rng, 10),
+            "address": addr,
+        }
+    return {}
 
 
 _TITLES = {
@@ -140,23 +198,53 @@ _TITLES = {
     DocumentType.BANK_MANDATE: "ACCOUNT OPENING MANDATE FORM",
     DocumentType.UTILITY_BILL: "IKEJA ELECTRIC PLC\nELECTRICITY UTILITY BILL",
     DocumentType.BANK_STATEMENT: "SPECIMEN BANK PLC\nSTATEMENT OF ACCOUNT",
+    DocumentType.CAC_DOCUMENT: "CORPORATE AFFAIRS COMMISSION\nCERTIFICATE OF INCORPORATION",
 }
 
 _LABELS = {
-    "full_name": "Name", "surname": "Surname", "first_name": "First Name",
-    "middle_name": "Middle Name", "date_of_birth": "Date of Birth", "gender": "Sex",
-    "nin": "NIN", "bvn": "BVN", "passport_number": "Passport No",
-    "drivers_license_number": "Licence No", "document_number": "Document No",
-    "account_number": "Account No", "issue_date": "Date of Issue",
-    "expiry_date": "Date of Expiry", "address": "Address",
-    "issuing_authority": "Issued By",
+    # Names
+    "full_name": "Name", "company_name": "Registered Name",
+    "surname": "Surname", "first_name": "First Name", "middle_name": "Middle Name",
+    # Demographics
+    "date_of_birth": "Date of Birth", "gender": "Sex",
+    "nationality": "Nationality", "place_of_birth": "Place of Birth",
+    "occupation": "Occupation", "blood_group": "Blood Group", "height": "Height",
+    # Identity numbers
+    "tracking_id": "Tracking ID", "nin": "NIN", "bvn": "BVN",
+    "passport_number": "Passport No",
+    "drivers_license_number": "Licence No",
+    "document_number": "Document No", "account_number": "Account No",
+    "meter_number": "Meter No", "registration_number": "Registration No",
+    "polling_unit_code": "PU Code",
+    # Dates
+    "issue_date": "Date of Issue", "expiry_date": "Date of Expiry",
+    "due_date": "Due Date", "registration_date": "Date of Registration",
+    "incorporation_date": "Date of Incorporation",
+    "billing_period": "Billing Period", "statement_period": "Statement Period",
+    # Money
+    "amount_due": "Amount Due", "opening_balance": "Opening Balance",
+    "closing_balance": "Closing Balance",
+    # Address / authority / contact
+    "address": "Address", "issuing_authority": "Issued By",
+    "issuing_state": "State of Issue", "branch_name": "Branch",
+    "phone_number": "Phone",
 }
 
-# Order labels nicely; full_name only shown if surname/first not present.
-_LINE_ORDER = ["surname", "first_name", "middle_name", "full_name", "date_of_birth",
-               "gender", "nin", "bvn", "passport_number", "drivers_license_number",
-               "document_number", "account_number", "address", "issue_date",
-               "expiry_date", "issuing_authority"]
+# Render order — matches the rough top-to-bottom layout of real documents.
+_LINE_ORDER = [
+    "tracking_id", "registration_number",
+    "company_name", "full_name",
+    "surname", "first_name", "middle_name",
+    "date_of_birth", "gender", "nationality", "place_of_birth", "occupation",
+    "nin", "bvn", "passport_number", "drivers_license_number",
+    "document_number", "polling_unit_code", "account_number", "meter_number",
+    "blood_group", "height",
+    "address",
+    "issue_date", "expiry_date", "due_date", "registration_date",
+    "incorporation_date", "billing_period", "statement_period",
+    "amount_due", "opening_balance", "closing_balance",
+    "issuing_authority", "issuing_state", "branch_name", "phone_number",
+]
 
 
 def _font(size: int) -> ImageFont.FreeTypeFont:
@@ -203,7 +291,8 @@ def render_document(
     # Field lines.
     y = 120
     shown = [f for f in _LINE_ORDER if f in fields]
-    # Avoid showing redundant full_name when surname+first already present.
+    # Schemas no longer mix full_name with split parts, but the guard stays
+    # defensive in case a future schema does.
     if "surname" in fields and "first_name" in fields and "full_name" in shown:
         shown.remove("full_name")
     for fname in shown:
@@ -226,6 +315,7 @@ DEFAULT_DOC_TYPES = [
     DocumentType.NIN_SLIP, DocumentType.NATIONAL_ID, DocumentType.PASSPORT,
     DocumentType.DRIVERS_LICENSE, DocumentType.VOTER_ID, DocumentType.BANK_MANDATE,
     DocumentType.UTILITY_BILL, DocumentType.BANK_STATEMENT,
+    DocumentType.CAC_DOCUMENT,
 ]
 DEFAULT_CONDITIONS = [
     CaptureCondition.CLEAN, CaptureCondition.MOBILE, CaptureCondition.LOW_LIGHT,
